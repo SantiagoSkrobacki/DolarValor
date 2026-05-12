@@ -1,0 +1,295 @@
+{
+  "name": "DolarValor",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sos un agente de IA experto en economía argentina. Recibís un historial del valor del dólar de los últimos días y un listado de noticias económicas actuales.\n\nTu objetivo es:\n1. Calcular e informar la variación del dólar entre el primer y último registro.\n2. Analizar las noticias provistas y deducir si alguna de ellas explica la variación del precio. Si las noticias no están relacionadas o no te sentís capacitado para suponer, simplemente informá la variación matemática si la hay, sino simplemente deci que no hay variacion respecto del dia anterior.\n\nNoticias de hoy:\n{{ JSON.stringify($json.data.json.noticias, null, 2) }}\n\nHistorial del valor del dólar:\n{{ JSON.stringify($('Consultar Historico De Valores').all().map(item => ({ fecha: item.json.fecha, valor: item.json.valor })), null, 2) }}\n\nEscribi el output teniendo en cuenta que va a ser enviado por mail, con lenguaje claro para el destinatario.\nUsa la herramienta \"Enviar Mail\"\nDespues de mandar el mail termina las tareas que estas haciendo, lo ultimo que haces es mandar el mail",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1568,
+        0
+      ],
+      "id": "b1387b50-49dc-428a-8f5a-981686968588",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "url": "https://dolarapi.com/v1/dolares/blue",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        0
+      ],
+      "id": "76387262-b136-457b-8c0d-fa728b9512e2",
+      "name": "Consultar Precio Dolar"
+    },
+    {
+      "parameters": {
+        "tableId": "Dolar",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "fecha",
+              "fieldValue": "={{ $json.fechaActualizacion }}"
+            },
+            {
+              "fieldId": "valor",
+              "fieldValue": "={{ $json.venta }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        608,
+        0
+      ],
+      "id": "ac27eb7b-2504-415f-8ea1-8b59da938b5e",
+      "name": "Agregar Valor Dolar  De La Fecha",
+      "credentials": {
+        "supabaseApi": {
+          "id": "jS2NUdWQeO03SPeB",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Dolar"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        832,
+        0
+      ],
+      "id": "4ee3f429-177f-4cc9-8b44-954bf98a5796",
+      "name": "Consultar Historico De Valores",
+      "credentials": {
+        "supabaseApi": {
+          "id": "jS2NUdWQeO03SPeB",
+          "name": "Supabase account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1568,
+        272
+      ],
+      "id": "95fb45c9-82bb-45a8-9d94-61ce829ed178",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "x6PQPIcj2ckYibkA",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v2/scrape",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"url\": \"https://www.ambito.com/\",\n  \"formats\": [\n    {\n      \"type\": \"json\",\n      \"schema\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"noticias\"\n        ],\n        \"properties\": {\n          \"noticias\": {\n            \"type\": \"array\",\n            \"description\": \"Lista de 5 noticias estrictamente relacionadas con el precio del dólar, el cepo cambiario o la economía argentina.\",\n            \"minItems\": 5,\n            \"maxItems\": 5,\n            \"items\": {\n              \"type\": \"object\",\n              \"required\": [\n                \"nombre_noticia\"\n              ],\n              \"properties\": {\n                \"nombre_noticia\": {\n                  \"type\": \"string\",\n                  \"description\": \"El titular de la noticia\"\n                },\n                \"descripcion_noticia\": {\n                  \"type\": \"string\",\n                  \"description\": \"El copete o breve resumen de la noticia. Si no tiene en la página, inventar un resumen corto basado en el título o dejar vacío.\"\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1280,
+        0
+      ],
+      "id": "e574093f-af9e-459e-95f9-061bc83f924d",
+      "name": "Consultar Noticias"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "72abe85f-574c-4e7c-8301-5347cb5c6d4c",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "subject": "Dolar Hoy",
+        "emailType": "text",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        1712,
+        272
+      ],
+      "id": "71616f55-6789-49e8-922a-cad88a6110f4",
+      "name": "Enviar Mail",
+      "webhookId": "d87d3a99-3126-4210-89a4-06ba0c293ea6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "RfddcaGCO629ptVZ",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        96,
+        0
+      ],
+      "id": "afb4cfb3-95f9-433f-a830-40d8f1e87384",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Consultar Precio Dolar": {
+      "main": [
+        [
+          {
+            "node": "Agregar Valor Dolar  De La Fecha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agregar Valor Dolar  De La Fecha": {
+      "main": [
+        [
+          {
+            "node": "Consultar Historico De Valores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Historico De Valores": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Noticias": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Consultar Noticias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Mail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Consultar Precio Dolar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "1075cb28-de25-4ffd-922b-df10c20e9b87",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3dbabd250b3c6c3f5a6802e300d094d5842bae3d1f5cba57245de6945c825f26"
+  },
+  "id": "lBWdWvdnQjHPvWmV",
+  "tags": []
+}
