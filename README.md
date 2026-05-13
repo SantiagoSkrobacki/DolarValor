@@ -1,7 +1,7 @@
 DolarValor - Reporte Automatizado con IA
 Este proyecto consiste en un flujo de automatización desarrollado en n8n que monitorea el valor del dólar blue en Argentina, gestiona un histórico de datos y genera reportes analíticos utilizando Inteligencia Artificial.
 
-🚀 Funcionamiento del Flujo
+Funcionamiento del Flujo
 El sistema se ejecuta automáticamente todos los días a las 08:00 AM y realiza los siguientes pasos:
 
 Obtención de Datos: Consulta el precio actual del dólar blue a través de una API externa.
